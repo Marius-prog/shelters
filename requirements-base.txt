@@ -1,0 +1,7 @@
+Django>=4.2,<5.1
+requests>=2.31.0
+python-dotenv>=1.0.0
+dj-database-url>=2.1.0
+whitenoise>=6.5.0
+django-leaflet>=0.29.0
+gunicorn>=21.0.0

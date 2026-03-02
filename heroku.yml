@@ -1,0 +1,37 @@
+setup:
+  addons:
+    - plan: heroku-postgresql:essential-0
+      as: DATABASE
+  config:
+    DJANGO_SETTINGS_MODULE: geodjango.settings
+    DJANGO_SECRET_KEY: 
+    DEBUG: false
+    ALLOWED_HOSTS: "*"
+    SECURE_SSL_REDIRECT: true
+    SECURE_HSTS_SECONDS: 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS: true
+    SECURE_HSTS_PRELOAD: true
+    SESSION_COOKIE_SECURE: true
+    CSRF_COOKIE_SECURE: true
+    SECURE_BROWSER_XSS_FILTER: true
+    SECURE_CONTENT_TYPE_NOSNIFF: true
+    GOOGLE_MAPS_API_KEY:
+
+build:
+  docker:
+    web: Dockerfile
+  config:
+    DJANGO_SETTINGS_MODULE: geodjango.settings
+
+release:
+  image: web
+  command:
+    - echo "Starting release phase..."
+    - python manage.py check --deploy
+    - python manage.py migrate --noinput
+    - python manage.py collectstatic --noinput --clear
+    - python manage.py import_shelters || echo "Data import failed, continuing..."
+    - echo "Release phase completed successfully"
+
+run:
+  web: gunicorn geodjango.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --worker-class gthread --threads 2 --worker-connections 1000 --max-requests 1000 --max-requests-jitter 100 --timeout 30 --keep-alive 2 --preload --access-logfile - --error-logfile - --log-level info

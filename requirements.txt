@@ -1,0 +1,32 @@
+# Core Django framework
+Django>=4.2,<5.1
+
+# Production server
+gunicorn>=21.0.0
+
+# Database adapters
+psycopg2-binary>=2.9.9
+dj-database-url>=2.1.0
+
+# Static files handling
+whitenoise>=6.5.0
+
+# HTTP requests
+requests>=2.31.0
+
+# Environment configuration
+python-dotenv>=1.0.0
+
+# GIS and mapping
+django-leaflet>=0.29.0
+
+# Security and monitoring
+sentry-sdk[django]>=1.38.0
+
+# Performance monitoring
+django-extensions>=3.2.3
+
+# Health checks
+django-health-check>=3.17.0 
+# Observability
+django-prometheus>=2.3

@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//opt/homebrew/Cellar/openexr/**)",
+      "Bash(source venv/bin/activate)",
+      "Bash(python run_local.py:*)",
+      "Bash(DEBUG=True python run_local.py:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:globe.airplanes.live)",
+      "WebSearch",
+      "WebFetch(domain:airplanes.live)",
+      "Bash(python3:*)",
+      "Bash(heroku logs:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

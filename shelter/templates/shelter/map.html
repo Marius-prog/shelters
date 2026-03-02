@@ -1,0 +1,269 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Google Tag Manager -->
+    <script>(function (w, d, s, l, i) {
+            w[l] = w[l] || []; w[l].push({
+                'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+            }); var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-NR5H2TNH');</script>
+    <!-- End Google Tag Manager -->
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-N9RT17F968"></script>
+
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-N9RT17F968');
+    </script>
+
+    <!-- Rybbit Analytics -->
+    <script
+        src="https://app.rybbit.io/api/script.js"
+        data-site-id="de6c949dd8d5"
+        defer
+    ></script>
+    <!-- End Rybbit Analytics -->
+
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="Permissions-Policy" content="accelerometer=(), gyroscope=(), magnetometer=()">
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self' https:;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://app.rybbit.io;
+        style-src 'self' 'unsafe-inline' https://unpkg.com;
+        img-src 'self' data: https: blob: https://t.plnspttrs.net;
+        connect-src 'self' https:;
+        font-src 'self' data:;
+        frame-src 'self' https:;
+    ">
+        <meta http-equiv="X-Content-Type-Options" content="nosniff">
+        <meta http-equiv="X-Frame-Options" content="DENY">
+    <title>Lietuvos priedangų žemėlapis</title>
+
+    <!-- Load CSS files first -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" type="text/css" href="{% static 'shelter/css/map.css' %}">
+
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+</head>
+
+<body>
+    <!-- Add this modal HTML after your header -->
+    <div id="shelterInfoModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Kas yra priedanga?</h2>
+            <div class="modal-body">
+                <p>Priedanga - tai specialiai įrengta arba tam pritaikyta statinio patalpa, kurioje gyventojai gali
+                    laikinai slėptis nuo karo grėsmių.</p>
+                <p>Priedangos gali būti:</p>
+                <ul>
+                    <li>Rūsiai</li>
+                    <li>Požeminės automobilių stovėjimo aikštelės</li>
+                    <li>Požeminės pėsčiųjų perėjos</li>
+                    <li>Kitos požeminės erdvės</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NR5H2TNH" height="0" width="0"
+            style="display:none;visibility:hidden"></iframe></noscript>
+
+    <!-- Add QR Code library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+
+    <!-- End Google Tag Manager (noscript) -->
+    <header class="header">
+        <div class="header-left">
+            <div class="clickable-item logo" title="Atnaujinti">🏛️</div>
+            <div class="clickable-item header-title">
+                <span id="mapTitle">Lietuvos priedangų žemėlapis</span>
+            </div>
+        </div>
+        <div class="header-controls">
+            <button id="shelterInfoBtn" class="info-button">Priedanga</button>
+            <select id="languageSelect" class="language-dropdown">
+                <option value="lt">🇱🇹 Lietuvių</option>
+                <option value="en">🇬🇧 English</option>
+                <option value="ru">🇷🇺 Русский</option>
+                <option value="pl">🇵🇱 Polski</option>
+            </select>
+            <button class="theme-toggle" id="themeToggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path class="sun"
+                        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <path class="moon"
+                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                        style="display:none" />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <div id="map"></div>
+
+    <!-- Filter at top left -->
+    <div class="filter-control">
+        <h3 class="filter-header">Pasirink savivaldybę</h3>
+        <select id="municipalityFilter" class="clickable-item">
+            <option value="">Visos savivaldybės</option>
+        </select>
+    </div>
+
+    <!-- Zoom controls at bottom left -->
+    <div class="custom-zoom-control">
+        <div class="zoom-button" onclick="map.zoomIn()" title="Priartinti">+</div>
+        <div class="zoom-button" onclick="map.zoomOut()" title="Atitolinti">−</div>
+    </div>
+
+    <div class="info-panel">
+        <h3>Priedangų informacija</h3>
+        {% if no_data_message %}
+            <div class="no-data-message" style="color: #ff6b6b; background: #fff5f5; padding: 10px; border-radius: 5px; border: 1px solid #ffcccc;">
+                <strong>No Data:</strong> {{ no_data_message }}
+            </div>
+        {% else %}
+            <p>Priedangų skaičius: <span id="shelterCount">{{ total_shelters|intcomma }}</span></p>
+            <p>Bendras plotas m²: <span id="capacityCount">{{ total_capacity|intcomma }}</span></p>
+        {% endif %}
+    </div>
+
+    <!-- QR Code Container -->
+    <div class="qr-code-container" id="qrCode">
+        <div class="qr-code-title"></div>
+        <div class="qr-code-image"></div>
+    </div>
+
+    <!-- Street View Modal - Make sure it's initially hidden -->
+    <div id="streetViewModal" class="street-view-modal" style="display: none;">
+        <div class="street-view-modal-content">
+            <button class="street-view-close">&times;</button>
+            <div id="street-view-container"></div>
+        </div>
+    </div>
+
+    <!-- Load all JavaScript at the end of body -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+
+    <script>
+        // Add global error handler
+        window.addEventListener('error', function(e) {
+            console.error('Global error caught:', e.message, e.filename, e.lineno);
+        });
+
+        try {
+            window.sheltersData = {{ shelters_json|safe }};
+            {% if no_data_message %}
+                console.warn("No shelter data in database: {{ no_data_message|escapejs }}");
+            {% else %}
+                console.log("Loaded shelter data successfully");
+            {% endif %}
+        } catch (e) {
+            console.error("Error handling shelter data:", e);
+            window.sheltersData = {"type": "FeatureCollection", "features": []};
+        }
+    </script>
+
+    <!-- Load your map.js before Google Maps -->
+    <script src="{% static 'shelter/js/map.js' %}"></script>
+
+    <!-- Load aircraft tracking module -->
+    <script src="{% static 'shelter/js/aircraft.js' %}"></script>
+
+    <!-- Add CSRF token -->
+    {% csrf_token %}
+
+    <!-- Load Google Maps last -->
+    <script>
+    // Add this before your map initialization code
+    async function loadGoogleMaps() {
+        try {
+            // Get CSRF token from cookie or meta tag
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+            
+            const csrftoken = getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            
+            if (!csrftoken) {
+                console.error('No CSRF token found');
+                // Initialize without API key
+                window.initializeGoogleMaps();
+                return;
+            }
+            
+            const response = await fetch('/api/maps-key/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API request failed with status ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (!data.key) {
+                console.warn('No Google Maps API key provided by server');
+                // Initialize without API key
+                window.initializeGoogleMaps();
+                return;
+            }
+            
+            // Load Google Maps with the key
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${data.key}&callback=initializeGoogleMaps`;
+            script.async = true;
+            script.defer = true;
+            script.onerror = () => {
+                console.error('Failed to load Google Maps API');
+                // Initialize without the API
+                window.initializeGoogleMaps();
+            };
+            document.body.appendChild(script);
+        } catch (error) {
+            console.error('Error loading Google Maps:', error);
+            // Initialize Street View functionality without the API
+            window.initializeGoogleMaps();
+        }
+    }
+
+    // Call this when the page loads
+    document.addEventListener('DOMContentLoaded', loadGoogleMaps);
+    </script>
+</body>
+
+</html>
