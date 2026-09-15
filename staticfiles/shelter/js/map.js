@@ -1,16 +1,41 @@
 // At the top of your file
 var map = L.map('map', {
     zoomControl: false,
+    attributionControl: true,
     center: [55.1694, 23.8813],
     zoom: window.innerWidth <= 768 ? 5 : 7,
     minZoom: window.innerWidth <= 768 ? 5 : 7,
-    maxZoom: 16
+    maxZoom: 18
 });
 
-// Add tile layer once
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© Morelo'
-}).addTo(map);
+// Esri Canvas basemaps — keyless light/dark gray
+var TILES = {
+    light: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    dark:  'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+};
+var tileAttribution = 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, HERE, Garmin';
+
+var tileLayer = L.tileLayer(
+    document.documentElement.getAttribute('data-theme') === 'dark' ? TILES.dark : TILES.light,
+    {
+        attribution: tileAttribution,
+        maxNativeZoom: 16,  // Canvas tiles stop at z16; Leaflet upscales beyond
+        maxZoom: 19
+    }
+).addTo(map);
+
+// Hook called by theme toggle below to swap tiles when theme changes
+window.swapMapTheme = function(theme) {
+    tileLayer.setUrl(theme === 'dark' ? TILES.dark : TILES.light);
+    var el = document.getElementById('map');
+    if (el) el.classList.toggle('is-dark', theme === 'dark');
+};
+// Initial sync
+(function(){
+    var t = document.documentElement.getAttribute('data-theme') || 'light';
+    var el = document.getElementById('map');
+    if (el) el.classList.toggle('is-dark', t === 'dark');
+})();
 
 
 // Remove fitBounds to use the initial zoom level from map initialization
@@ -87,10 +112,12 @@ fetch('https://nominatim.openstreetmap.org/search?country=lithuania&format=geojs
             var lithuaniaBorder = L.geoJSON(data.features[0].geometry, {
                 style: function() {
                     return {
-                        color: 'rgb(100, 149, 237)', // Pure green in RGB
-                        weight: 5,
-                        opacity: 1,
-                        fill: false
+                        color: '#0B1220',
+                        weight: 1.25,
+                        opacity: 0.55,
+                        fill: false,
+                        dashArray: '2 4',
+                        lineCap: 'square'
                     };
                 }
             }).addTo(map);
@@ -102,7 +129,31 @@ fetch('https://nominatim.openstreetmap.org/search?country=lithuania&format=geojs
     })
     .catch(error => console.error('Error:', error));
 
-var markers = L.markerClusterGroup();
+var markers = L.markerClusterGroup({
+    showCoverageOnHover: false,
+    spiderfyOnMaxZoom: true,
+    chunkedLoading: true,
+    maxClusterRadius: function(zoom) { return zoom > 12 ? 36 : 56; },
+    iconCreateFunction: function(cluster) {
+        var n = cluster.getChildCount();
+        var sizeClass = n >= 1000 ? 'cluster-ring--lg' : (n >= 100 ? 'cluster-ring--md' : 'cluster-ring--sm');
+        var dim = n >= 1000 ? 56 : (n >= 100 ? 46 : 38);
+        var label = n >= 1000 ? (Math.round(n / 100) / 10).toFixed(1) + 'k' : n;
+        return L.divIcon({
+            html: '<div class="cluster-ring ' + sizeClass + '"><span class="cluster-ring__num">' + label + '</span></div>',
+            className: 'marker-cluster-custom',
+            iconSize: L.point(dim, dim)
+        });
+    }
+});
+
+// Custom single-shelter marker
+var shelterIcon = L.divIcon({
+    html: '<div class="shelter-pin"></div>',
+    className: '',
+    iconSize: [14, 14],
+    iconAnchor: [7, 7]
+});
 
 
 // Get the sheltersData from the window object (already parsed in the template)
@@ -126,10 +177,18 @@ function updateStatistics(features) {
         return sum + (isNaN(capacity) ? 0 : capacity);
     }, 0);
 
-    document.getElementById('shelterCount').textContent =
-        visibleShelters.toLocaleString('lt-LT');
-    document.getElementById('capacityCount').textContent =
-        Math.round(totalCapacity).toLocaleString('lt-LT');
+    var nShelters = visibleShelters.toLocaleString('lt-LT');
+    var nCapacity = Math.round(totalCapacity).toLocaleString('lt-LT');
+
+    var elS = document.getElementById('shelterCount');
+    var elC = document.getElementById('capacityCount');
+    if (elS) elS.textContent = nShelters;
+    if (elC) elC.textContent = nCapacity;
+
+    var rS = document.getElementById('ribbonShelters');
+    var rC = document.getElementById('ribbonCapacity');
+    if (rS) rS.textContent = nShelters;
+    if (rC) rC.textContent = nCapacity;
 }
 
 function createMarkers(geojsonData) {
@@ -257,6 +316,7 @@ themeToggle.addEventListener('click', () => {
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
     updateThemeIcon(newTheme);
+    if (window.swapMapTheme) window.swapMapTheme(newTheme);
 });
 
 function updateThemeIcon(theme) {
@@ -272,7 +332,7 @@ function updateThemeIcon(theme) {
 // Update translations object
 const translations = {
     lt: {
-        title: "Lietuvos priedangų žemėlapis",
+        title: "Priedangos",
         shelterCount: "Priedangų skaičius",
         totalArea: "Bendras plotas m²",
         filterHeader: "Pasirink savivaldybę",
@@ -289,7 +349,7 @@ const translations = {
         shelterType4: "Kitos požeminės erdvės"
     },
     en: {
-        title: "Lithuania Shelter Map",
+        title: "Shelters",
         shelterCount: "Number of Shelters",
         totalArea: "Total Area m²",
         filterHeader: "Select Municipality",
@@ -306,7 +366,7 @@ const translations = {
         shelterType4: "Other underground spaces"
     },
     ru: {
-        title: "Ката убежищ Литвы",
+        title: "Убежища",
         shelterCount: "Количество убежищ",
         totalArea: "Общая площадь м²",
         filterHeader: "Выберите муниципалитет",
@@ -323,7 +383,7 @@ const translations = {
         shelterType4: "Другие подземные помещения"
     },
     pl: {
-        title: "Mapa schronów Litwy",
+        title: "Schrony",
         shelterCount: "Liczba schronów",
         totalArea: "Całkowita powierzchnia m²",
         filterHeader: "Wybierz gminę",
@@ -343,19 +403,34 @@ const translations = {
 
 // Function to update all translations
 function switchLanguage(lang) {
-    // Update text content
-    document.getElementById('mapTitle').textContent = translations[lang].title;
-    document.querySelector('.filter-control h3').textContent = translations[lang].filterHeader;
+    var t = translations[lang];
 
-    // Update QR code title
-    document.querySelector('.qr-code-title').textContent = translations[lang].qrCodeText;
+    // Title
+    var mapTitleEl = document.getElementById('mapTitle');
+    if (mapTitleEl) mapTitleEl.textContent = t.title;
 
-    // Update statistics
-    const stats = document.querySelector('.info-panel');
-    stats.querySelector('p:nth-child(2)').innerHTML =
-        `${translations[lang].shelterCount}: <span id="shelterCount">${document.getElementById('shelterCount').textContent}</span>`;
-    stats.querySelector('p:nth-child(3)').innerHTML =
-        `${translations[lang].totalArea}: <span id="capacityCount">${document.getElementById('capacityCount').textContent}</span>`;
+    // Filter heading
+    var filterH = document.querySelector('.filter-control .rail__heading') || document.querySelector('.filter-control h3');
+    if (filterH) filterH.textContent = t.filterHeader;
+
+    // QR
+    var qrTitle = document.querySelector('.qr-code-title');
+    if (qrTitle) qrTitle.textContent = t.qrCodeText;
+
+    // Info panel stats: update labels but preserve value spans
+    var stats = document.querySelectorAll('.info-panel .stat');
+    if (stats.length >= 2) {
+        var labels = [t.shelterCount, t.totalArea];
+        stats.forEach(function(p, i) {
+            var label = p.querySelector('.stat__label');
+            if (label) label.textContent = labels[i];
+        });
+    }
+    // Ribbon labels (masthead status strip) - textContent only, no HTML
+    var ribbonShEl = document.querySelector('.ribbon__cell:nth-child(1) .ribbon__label');
+    if (ribbonShEl) ribbonShEl.textContent = t.shelterCount;
+    var ribbonCpEl = document.querySelector('.ribbon__cell:nth-child(2) .ribbon__label');
+    if (ribbonCpEl) ribbonCpEl.textContent = t.totalArea;
 
     // Update municipality dropdown
     const select = document.getElementById('municipalityFilter');
@@ -493,26 +568,24 @@ window.initializeGoogleMaps = initializeGoogleMaps;
 // Update your createMarkers function
 function createMarkers(geojsonData) {
     var geoJsonLayer = L.geoJSON(geojsonData, {
+        pointToLayer: function(feature, latlng) {
+            return L.marker(latlng, { icon: shelterIcon });
+        },
         onEachFeature: function(feature, layer) {
             var props = feature.properties;
             var coordinates = feature.geometry.coordinates;
             var capacity = props.capacity ? parseFloat(props.capacity) : 0;
 
-            var popupContent = `
-                <div class="popup-content">
-                    <h4>${props.purpose || 'Shelter'}</h4>
-                    <p><strong>adresas:</strong> ${props.address}</p>
-                    <p><strong>savivaldybė:</strong> ${props.municipality}</p>
-                    <p><strong>plotas m²:</strong> ${capacity ? capacity.toLocaleString('lt-LT') : 'N/A'}</p>
-                    <p><strong>stovis:</strong> ${props.condition || 'N/A'}</p>
-                    <button 
-                        class="view-street-btn" 
-                        onclick="showStreetView(${coordinates[1]}, ${coordinates[0]})">
-                        Gatvės vaizdas
-                    </button>
-                </div>
-            `;
-            layer.bindPopup(popupContent);
+            var popupContent =
+                '<div class="popup-content">' +
+                    '<h4>' + (props.purpose || 'Priedanga') + '</h4>' +
+                    '<p><strong>Adresas</strong><span>' + (props.address || '—') + '</span></p>' +
+                    '<p><strong>Savivaldybė</strong><span>' + (props.municipality || '—') + '</span></p>' +
+                    '<p><strong>Plotas m²</strong><span>' + (capacity ? capacity.toLocaleString('lt-LT') : '—') + '</span></p>' +
+                    '<p><strong>Stovis</strong><span>' + (props.condition || '—') + '</span></p>' +
+                    '<button class="view-street-btn" onclick="showStreetView(' + coordinates[1] + ',' + coordinates[0] + ')">Gatvės vaizdas</button>' +
+                '</div>';
+            layer.bindPopup(popupContent, { closeButton: true, maxWidth: 320 });
         }
     });
     markers.addLayer(geoJsonLayer);

@@ -28,5 +28,3 @@ django-extensions>=3.2.3
 
 # Health checks
 django-health-check>=3.17.0 
-# Observability
-django-prometheus>=2.3

@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.db.models import Sum
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
+from django.views.decorators.cache import cache_page
 from django.conf import settings
 import json
 import requests
@@ -225,8 +226,10 @@ def sitemap_xml(request):
 """
     return HttpResponse(content, content_type="application/xml")
 
+# ponytail: per-worker LocMemCache, only 200s are cached; use shared cache if workers scale out
+@cache_page(10)
 def aircraft_data(request):
-    """Fetch real-time aircraft data over Lithuania and surrounding areas from airplanes.live API"""
+    """Fetch real-time aircraft data over Lithuania and surrounding areas from adsb.lol API"""
     try:
         # Lithuania center coordinates and radius
         # Center: approximately Vilnius area
@@ -234,8 +237,8 @@ def aircraft_data(request):
         lon = 23.88
         radius_nm = 108  # ~200km to cover Lithuania and neighboring airspace
 
-        # Fetch data from airplanes.live API
-        api_url = f"https://api.airplanes.live/v2/point/{lat}/{lon}/{radius_nm}"
+        # Fetch data from adsb.lol API (airplanes.live now requires registration)
+        api_url = f"https://api.adsb.lol/v2/point/{lat}/{lon}/{radius_nm}"
         response = requests.get(api_url, timeout=5)
 
         if response.status_code == 200:
@@ -353,7 +356,7 @@ def aircraft_data(request):
 
     except requests.exceptions.Timeout:
         return JsonResponse({
-            "error": "Request to airplanes.live API timed out",
+            "error": "Request to adsb.lol API timed out",
             "type": "FeatureCollection",
             "features": [],
             "count": 0

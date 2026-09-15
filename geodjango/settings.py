@@ -9,6 +9,13 @@ from django.core.management.utils import get_random_secret_key
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load .env (no-op in production where vars are set in the platform env)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / '.env')
+except ImportError:
+    pass
+
 # GDAL/GEOS library paths for macOS (Homebrew)
 if sys.platform == 'darwin':  # macOS
     import glob
@@ -20,6 +27,13 @@ if sys.platform == 'darwin':  # macOS
     geos_paths = glob.glob('/opt/homebrew/Cellar/geos/*/lib/libgeos_c.*.dylib')
     if geos_paths:
         GEOS_LIBRARY_PATH = geos_paths[0]
+    # Try to find SpatiaLite extension
+    spatialite_paths = (
+        glob.glob('/opt/homebrew/lib/mod_spatialite.dylib')
+        + glob.glob('/opt/homebrew/Cellar/libspatialite/*/lib/mod_spatialite.dylib')
+    )
+    if spatialite_paths:
+        SPATIALITE_LIBRARY_PATH = spatialite_paths[0]
 
 # Setup logging with better configuration
 LOGGING = {
@@ -87,7 +101,7 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'true').lower() == 'true'
+    SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     USE_X_FORWARDED_HOST = True
@@ -110,11 +124,11 @@ if not DEBUG:
 
     # Content Security Policy
     CSP_DEFAULT_SRC = ("'self'",)
-    CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com", "https://cdn.jsdelivr.net", "https://maps.googleapis.com", "https://www.googletagmanager.com", "https://app.rybbit.io")
+    CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com", "https://cdn.jsdelivr.net", "https://maps.googleapis.com", "https://www.googletagmanager.com", "https://www.google-analytics.com", "https://app.rybbit.io")
     CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://unpkg.com", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com")
     CSP_IMG_SRC = ("'self'", "data:", "https:", "blob:")
     CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com", "data:")
-    CSP_CONNECT_SRC = ("'self'", "https://api.airplanes.live", "https://globe.airplanes.live", "https://maps.googleapis.com", "https://app.rybbit.io", "https://nominatim.openstreetmap.org", "https://api.planespotters.net")
+    CSP_CONNECT_SRC = ("'self'", "https://api.airplanes.live", "https://globe.airplanes.live", "https://maps.googleapis.com", "https://*.google-analytics.com", "https://*.analytics.google.com", "https://*.googletagmanager.com", "https://app.rybbit.io", "https://nominatim.openstreetmap.org", "https://api.planespotters.net")
     CSP_FRAME_SRC = ("'self'", "https://www.google.com")
 
 else:
@@ -173,7 +187,6 @@ if os.environ.get('SENTRY_DSN'):
 
 # Application definition
 INSTALLED_APPS = [
-    'django_prometheus',  # Prometheus — must be first
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -202,7 +215,6 @@ if DEBUG:
     ])
 
 MIDDLEWARE = [
-    'django_prometheus.middleware.PrometheusBeforeMiddleware',  # must be first
     'django.middleware.security.SecurityMiddleware',
     'geodjango.custom_whitenoise.SecurityWhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -212,7 +224,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'geodjango.middleware.SecurityHeadersMiddleware',
-    'django_prometheus.middleware.PrometheusAfterMiddleware',  # must be last
 ]
 
 ROOT_URLCONF = 'geodjango.urls'

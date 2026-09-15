@@ -191,6 +191,10 @@
                 // Clear existing aircraft markers
                 aircraftLayer.clearLayers();
 
+                // Update masthead live counter
+                var ribbonAir = document.getElementById('ribbonAircraft');
+                if (ribbonAir) ribbonAir.textContent = (data.features ? data.features.length : 0).toLocaleString('lt-LT');
+
                 if (data.features && data.features.length > 0) {
                     console.log('Displaying ' + data.features.length + ' aircraft over Lithuania');
 
@@ -383,6 +387,8 @@
                 }
             })
             .catch(function(error) {
+                var ribbonAirErr = document.getElementById('ribbonAircraft');
+                if (ribbonAirErr) ribbonAirErr.textContent = '—';
                 console.error('Error fetching aircraft data:', error);
             });
     }

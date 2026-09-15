@@ -1,0 +1,57 @@
+services:
+  web:
+    build: .
+    command: gunicorn geodjango.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    expose:
+      - 8000
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgis://geodjango:geodjango@db:5432/geodjango
+      - DJANGO_SETTINGS_MODULE=geodjango.settings
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-change-me}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - geodjango-network
+
+  db:
+    image: postgis/postgis:16-3.4
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-geodjango}
+      - POSTGRES_USER=${POSTGRES_USER:-geodjango}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-geodjango}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-geodjango}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - geodjango-network
+
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "80:80"
+    depends_on:
+      - web
+    networks:
+      - geodjango-network
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
+
+networks:
+  geodjango-network:
+    driver: bridge

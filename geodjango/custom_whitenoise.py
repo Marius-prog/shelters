@@ -4,6 +4,7 @@ Custom WhiteNoise middleware to add security headers to static files.
 import logging
 from django.conf import settings
 from whitenoise.middleware import WhiteNoiseMiddleware
+from whitenoise.responders import StaticFile
 
 logger = logging.getLogger(__name__)
 
@@ -13,32 +14,32 @@ class SecurityWhiteNoiseMiddleware(WhiteNoiseMiddleware):
     Custom WhiteNoise middleware that adds security headers to static files.
     """
 
-    def add_headers(self, static_file, url):
+    def serve(self, static_file):
         """
-        Add security headers to static files served by WhiteNoise.
-        This method is called by WhiteNoise for each static file at WSGI level.
+        Override serve() to add custom security headers to the response.
+        This method is called by WhiteNoise when serving each static file.
         """
-        # Call parent method to get default headers
-        headers = super().add_headers(static_file, url)
+        # Get the response from parent
+        response = super().serve(static_file)
 
         # Only add security headers in production
-        if not settings.DEBUG:
-            logger.info(f"Adding security headers to static file: {url}")
+        if not settings.DEBUG and response:
+            logger.info(f"Adding security headers to static file")
 
             # Add security headers
-            headers['X-Frame-Options'] = 'DENY'
-            headers['X-Content-Type-Options'] = 'nosniff'
-            headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
-            headers['X-XSS-Protection'] = '1; mode=block'
+            response.headers['X-Frame-Options'] = 'DENY'
+            response.headers['X-Content-Type-Options'] = 'nosniff'
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+            response.headers['X-XSS-Protection'] = '1; mode=block'
 
-            # Remove CORS header if present - WhiteNoise adds this by default
-            if 'Access-Control-Allow-Origin' in headers:
-                logger.info(f"Removing Access-Control-Allow-Origin from {url}")
-                del headers['Access-Control-Allow-Origin']
+            # Remove CORS header if present
+            if 'Access-Control-Allow-Origin' in response.headers:
+                logger.info(f"Removing Access-Control-Allow-Origin")
+                del response.headers['Access-Control-Allow-Origin']
 
             # Add CSP for JS files
-            if url.endswith('.js'):
-                logger.info(f"Adding CSP to JS file: {url}")
+            if hasattr(static_file, 'path') and static_file.path.endswith('.js'):
+                logger.info(f"Adding CSP to JS file")
                 csp_parts = []
                 if hasattr(settings, 'CSP_DEFAULT_SRC'):
                     csp_parts.append(f"default-src {' '.join(settings.CSP_DEFAULT_SRC)}")
@@ -56,8 +57,8 @@ class SecurityWhiteNoiseMiddleware(WhiteNoiseMiddleware):
                     csp_parts.append(f"frame-src {' '.join(settings.CSP_FRAME_SRC)}")
 
                 if csp_parts:
-                    headers['Content-Security-Policy'] = '; '.join(csp_parts)
+                    response.headers['Content-Security-Policy'] = '; '.join(csp_parts)
 
-            logger.info(f"Security headers applied to {url}")
+            logger.info(f"Security headers applied")
 
-        return headers
+        return response

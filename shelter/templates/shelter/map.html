@@ -1,7 +1,7 @@
 {% load static %}
 {% load humanize %}
 <!DOCTYPE html>
-<html>
+<html lang="lt">
 
 <head>
     <!-- Google Tag Manager -->
@@ -13,63 +13,61 @@
                 j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
                     'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
         })(window, document, 'script', 'dataLayer', 'GTM-NR5H2TNH');</script>
-    <!-- End Google Tag Manager -->
 
-    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-N9RT17F968"></script>
-
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag() { dataLayer.push(arguments); }
         gtag('js', new Date());
-
         gtag('config', 'G-N9RT17F968');
     </script>
 
-    <!-- Rybbit Analytics -->
     <script
         src="https://app.rybbit.io/api/script.js"
         data-site-id="de6c949dd8d5"
         defer
     ></script>
-    <!-- End Rybbit Analytics -->
 
-        <meta charset="UTF-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="Lietuvos civilinės saugos priedangų žemėlapis – realiu laiku, atviri duomenys.">
+    <meta name="theme-color" content="#0B1220">
+    <link rel="icon" type="image/svg+xml" href="{% static 'shelter/img/favicon.svg' %}">
+
     <meta http-equiv="Permissions-Policy" content="accelerometer=(), gyroscope=(), magnetometer=()">
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self' https:;
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://app.rybbit.io;
-        style-src 'self' 'unsafe-inline' https://unpkg.com;
-        img-src 'self' data: https: blob: https://t.plnspttrs.net;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://app.rybbit.io https://www.googletagmanager.com https://www.google-analytics.com;
+        style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com;
+        img-src 'self' data: https: blob: https://t.plnspttrs.net https://server.arcgisonline.com https://*.tile.openstreetmap.org;
         connect-src 'self' https:;
-        font-src 'self' data:;
+        font-src 'self' data: https://fonts.gstatic.com;
         frame-src 'self' https:;
     ">
-        <meta http-equiv="X-Content-Type-Options" content="nosniff">
-        <meta http-equiv="X-Frame-Options" content="DENY">
-    <title>Lietuvos priedangų žemėlapis</title>
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
 
-    <!-- Load CSS files first -->
+    <title>Priedangos · Lietuvos civilinės saugos žemėlapis</title>
+
+    <!-- Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Map libraries -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <link rel="stylesheet" type="text/css" href="{% static 'shelter/css/map.css' %}">
-
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 </head>
 
 <body>
-    <!-- Add this modal HTML after your header -->
-    <div id="shelterInfoModal" class="modal">
+    <!-- "What is a shelter" modal -->
+    <div id="shelterInfoModal" class="modal" aria-hidden="true">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <button class="close" aria-label="Uždaryti">×</button>
             <h2>Kas yra priedanga?</h2>
             <div class="modal-body">
-                <p>Priedanga - tai specialiai įrengta arba tam pritaikyta statinio patalpa, kurioje gyventojai gali
-                    laikinai slėptis nuo karo grėsmių.</p>
+                <p>Priedanga — tai specialiai įrengta arba tam pritaikyta statinio patalpa, kurioje gyventojai gali laikinai slėptis nuo karo grėsmių.</p>
                 <p>Priedangos gali būti:</p>
                 <ul>
                     <li>Rūsiai</li>
@@ -80,31 +78,53 @@
             </div>
         </div>
     </div>
-    <!-- Google Tag Manager (noscript) -->
+
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NR5H2TNH" height="0" width="0"
             style="display:none;visibility:hidden"></iframe></noscript>
 
-    <!-- Add QR Code library -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-
-    <!-- End Google Tag Manager (noscript) -->
-    <header class="header">
-        <div class="header-left">
-            <div class="clickable-item logo" title="Atnaujinti">🏛️</div>
-            <div class="clickable-item header-title">
-                <span id="mapTitle">Lietuvos priedangų žemėlapis</span>
+    <!-- ====== MASTHEAD ====== -->
+    <header class="masthead" role="banner">
+        <div class="masthead__brand">
+            <a class="masthead__mark clickable-item logo" title="Atnaujinti vaizdą" aria-label="Atnaujinti">
+                <!-- Inline civic-defense glyph: arch over downward arrow (shelter entry) -->
+                <svg viewBox="0 0 32 32" aria-hidden="true">
+                    <path d="M4 28 V14 a12 12 0 0 1 24 0 V28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
+                    <path d="M16 8 V24 M10 18 L16 24 L22 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"/>
+                </svg>
+            </a>
+            <div class="masthead__words">
+                <div class="masthead__eyebrow">Lietuvos civilinė sauga · atviri duomenys</div>
+                <h1 class="masthead__title clickable-item header-title">
+                    <span id="mapTitle">Priedangos</span>
+                </h1>
             </div>
         </div>
-        <div class="header-controls">
-            <button id="shelterInfoBtn" class="info-button">Priedanga</button>
-            <select id="languageSelect" class="language-dropdown">
-                <option value="lt">🇱🇹 Lietuvių</option>
-                <option value="en">🇬🇧 English</option>
-                <option value="ru">🇷🇺 Русский</option>
-                <option value="pl">🇵🇱 Polski</option>
+
+        <div class="masthead__ribbon" aria-label="Statusas">
+            <div class="ribbon__cell">
+                <div class="ribbon__label">Žinomos priedangos</div>
+                <div class="ribbon__value"><span id="ribbonShelters">{{ total_shelters|intcomma }}</span></div>
+            </div>
+            <div class="ribbon__cell">
+                <div class="ribbon__label">Bendras plotas, m²</div>
+                <div class="ribbon__value"><span id="ribbonCapacity">{{ total_capacity|intcomma }}</span></div>
+            </div>
+            <div class="ribbon__cell ribbon__cell--live">
+                <div class="ribbon__label"><span class="pulse-dot"></span> Orlaiviai erdvėje</div>
+                <div class="ribbon__value"><span id="ribbonAircraft">—</span></div>
+            </div>
+        </div>
+
+        <div class="masthead__controls header-controls">
+            <button id="shelterInfoBtn" class="btn btn--ghost info-button" type="button">Priedanga</button>
+            <select id="languageSelect" class="lang-select language-dropdown" aria-label="Kalba">
+                <option value="lt">LT — Lietuvių</option>
+                <option value="en">EN — English</option>
+                <option value="ru">RU — Русский</option>
+                <option value="pl">PL — Polski</option>
             </select>
-            <button class="theme-toggle" id="themeToggle">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="Tema">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
                     <path class="sun"
                         d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                     <path class="moon"
@@ -115,59 +135,88 @@
         </div>
     </header>
 
-    <div id="map"></div>
+    <!-- ====== MAP STAGE ====== -->
+    <main class="stage">
+        <div id="map" role="application" aria-label="Žemėlapis"></div>
 
-    <!-- Filter at top left -->
-    <div class="filter-control">
-        <h3 class="filter-header">Pasirink savivaldybę</h3>
-        <select id="municipalityFilter" class="clickable-item">
-            <option value="">Visos savivaldybės</option>
-        </select>
-    </div>
+        <!-- Left rail: filter + info as a unified editorial panel -->
+        <aside class="rail" aria-label="Valdiklis">
+            <section class="rail__section filter-control">
+                <div class="rail__eyebrow">01 · Filtras</div>
+                <h3 class="rail__heading filter-header">Pasirink savivaldybę</h3>
+                <select id="municipalityFilter" class="clickable-item" aria-label="Savivaldybė">
+                    <option value="">Visos savivaldybės</option>
+                </select>
+            </section>
 
-    <!-- Zoom controls at bottom left -->
-    <div class="custom-zoom-control">
-        <div class="zoom-button" onclick="map.zoomIn()" title="Priartinti">+</div>
-        <div class="zoom-button" onclick="map.zoomOut()" title="Atitolinti">−</div>
-    </div>
+            <hr class="rail__rule">
 
-    <div class="info-panel">
-        <h3>Priedangų informacija</h3>
-        {% if no_data_message %}
-            <div class="no-data-message" style="color: #ff6b6b; background: #fff5f5; padding: 10px; border-radius: 5px; border: 1px solid #ffcccc;">
-                <strong>No Data:</strong> {{ no_data_message }}
-            </div>
-        {% else %}
-            <p>Priedangų skaičius: <span id="shelterCount">{{ total_shelters|intcomma }}</span></p>
-            <p>Bendras plotas m²: <span id="capacityCount">{{ total_capacity|intcomma }}</span></p>
-        {% endif %}
-    </div>
+            <section class="rail__section info-panel">
+                <div class="rail__eyebrow">02 · Suvestinė</div>
+                <h3 class="rail__heading">Priedangų informacija</h3>
+                {% if no_data_message %}
+                    <div class="alert">
+                        <strong>Nėra duomenų.</strong> {{ no_data_message }}
+                    </div>
+                {% else %}
+                    <p class="stat">
+                        <span class="stat__label">Priedangų skaičius</span>
+                        <span class="stat__value"><span id="shelterCount">{{ total_shelters|intcomma }}</span></span>
+                    </p>
+                    <p class="stat">
+                        <span class="stat__label">Bendras plotas, m²</span>
+                        <span class="stat__value"><span id="capacityCount">{{ total_capacity|intcomma }}</span></span>
+                    </p>
+                {% endif %}
+            </section>
 
-    <!-- QR Code Container -->
-    <div class="qr-code-container" id="qrCode">
-        <div class="qr-code-title"></div>
-        <div class="qr-code-image"></div>
-    </div>
+            <hr class="rail__rule">
 
-    <!-- Street View Modal - Make sure it's initially hidden -->
+            <section class="rail__section qr-code-container" id="qrCode">
+                <div class="rail__eyebrow">03 · Mobilus</div>
+                <div class="qr-code-title">Skanuok ir atidaryk telefone</div>
+                <div class="qr-code-image"></div>
+            </section>
+        </aside>
+
+        <!-- Custom zoom (kept for JS API compatibility) -->
+        <div class="custom-zoom-control">
+            <button class="zoom-button" onclick="map.zoomIn()" title="Priartinti" aria-label="Priartinti">+</button>
+            <button class="zoom-button" onclick="map.zoomOut()" title="Atitolinti" aria-label="Atitolinti">−</button>
+        </div>
+    </main>
+
+    <!-- ====== FOOTER ====== -->
+    <footer class="footline" role="contentinfo">
+        <div class="footline__left">
+            <span class="footline__mark">SLEPK.LT</span>
+            <span class="footline__sep">·</span>
+            <span>Duomenys: <a href="https://get.data.gov.lt/datasets/gov/pagd/priedangos/" target="_blank" rel="noopener">PAGD atviri duomenys</a></span>
+        </div>
+        <div class="footline__right">
+            <span>Žemėlapis: <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a></span>
+            <span class="footline__sep">·</span>
+            <span class="footline__build">v · LIVE</span>
+        </div>
+    </footer>
+
+    <!-- Street View Modal -->
     <div id="streetViewModal" class="street-view-modal" style="display: none;">
         <div class="street-view-modal-content">
-            <button class="street-view-close">&times;</button>
+            <button class="street-view-close" aria-label="Uždaryti">×</button>
             <div id="street-view-container"></div>
         </div>
     </div>
 
-    <!-- Load all JavaScript at the end of body -->
+    <!-- ====== SCRIPTS ====== -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
     <script>
-        // Add global error handler
         window.addEventListener('error', function(e) {
             console.error('Global error caught:', e.message, e.filename, e.lineno);
         });
-
         try {
             window.sheltersData = {{ shelters_json|safe }};
             {% if no_data_message %}
@@ -181,21 +230,14 @@
         }
     </script>
 
-    <!-- Load your map.js before Google Maps -->
     <script src="{% static 'shelter/js/map.js' %}"></script>
-
-    <!-- Load aircraft tracking module -->
     <script src="{% static 'shelter/js/aircraft.js' %}"></script>
 
-    <!-- Add CSRF token -->
     {% csrf_token %}
 
-    <!-- Load Google Maps last -->
     <script>
-    // Add this before your map initialization code
     async function loadGoogleMaps() {
         try {
-            // Get CSRF token from cookie or meta tag
             function getCookie(name) {
                 let cookieValue = null;
                 if (document.cookie && document.cookie !== '') {
@@ -210,58 +252,27 @@
                 }
                 return cookieValue;
             }
-            
             const csrftoken = getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-            
-            if (!csrftoken) {
-                console.error('No CSRF token found');
-                // Initialize without API key
-                window.initializeGoogleMaps();
-                return;
-            }
-            
+            if (!csrftoken) { window.initializeGoogleMaps(); return; }
             const response = await fetch('/api/maps-key/', {
                 method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrftoken,
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
+                headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 credentials: 'same-origin'
             });
-            
-            if (!response.ok) {
-                throw new Error(`API request failed with status ${response.status}`);
-            }
-            
+            if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
             const data = await response.json();
-            
-            if (!data.key) {
-                console.warn('No Google Maps API key provided by server');
-                // Initialize without API key
-                window.initializeGoogleMaps();
-                return;
-            }
-            
-            // Load Google Maps with the key
+            if (!data.key) { window.initializeGoogleMaps(); return; }
             const script = document.createElement('script');
             script.src = `https://maps.googleapis.com/maps/api/js?key=${data.key}&callback=initializeGoogleMaps`;
             script.async = true;
             script.defer = true;
-            script.onerror = () => {
-                console.error('Failed to load Google Maps API');
-                // Initialize without the API
-                window.initializeGoogleMaps();
-            };
+            script.onerror = () => { window.initializeGoogleMaps(); };
             document.body.appendChild(script);
         } catch (error) {
             console.error('Error loading Google Maps:', error);
-            // Initialize Street View functionality without the API
             window.initializeGoogleMaps();
         }
     }
-
-    // Call this when the page loads
     document.addEventListener('DOMContentLoaded', loadGoogleMaps);
     </script>
 </body>

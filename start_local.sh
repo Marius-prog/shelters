@@ -4,11 +4,11 @@ echo "Starting local development server..."
 echo "=================================="
 
 # Activate virtual environment
-source venv/bin/activate
+source .venv/bin/activate
 
-# Collect static files (suppress output)
-echo "Collecting static files..."
-python run_local.py collectstatic --noinput > /dev/null 2>&1
+# Skip collectstatic: DEBUG=True runserver serves static from STATICFILES_DIRS,
+# and WhiteNoise compression on iCloud-synced ~/Documents path can hang.
+echo "Skipping collectstatic (DEBUG runserver serves static directly)"
 
 # Start the development server
 echo "Starting server on http://localhost:8008"

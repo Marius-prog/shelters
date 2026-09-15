@@ -19,6 +19,8 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
+from django.shortcuts import redirect
+from django.templatetags.static import static as static_url
 from shelter import views
 
 def health_check(request):
@@ -30,12 +32,13 @@ def health_check(request):
     })
 
 urlpatterns = [
-    path('', include('django_prometheus.urls')),  # /metrics
     path('admin/', admin.site.urls),
     path('', include('shelter.urls')),
     path('health/', health_check, name='health_check'),
     path('robots.txt', views.robots_txt, name='robots_txt'),
     path('sitemap.xml', views.sitemap_xml, name='sitemap_xml'),
+    # ponytail: browsers/crawlers still request /favicon.ico; redirect to the SVG
+    path('favicon.ico', lambda request: redirect(static_url('shelter/img/favicon.svg'), permanent=True)),
 ]
 
 # Add health check URLs in production

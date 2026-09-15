@@ -1,0 +1,46 @@
+services:
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - DATABASE_URL=postgis://geodjango:geodjango@db:5432/geodjango
+      - DJANGO_SETTINGS_MODULE=geodjango.settings
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - geodjango-network
+
+  db:
+    image: postgis/postgis:16-3.4
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=geodjango
+      - POSTGRES_USER=geodjango
+      - POSTGRES_PASSWORD=geodjango
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geodjango"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - geodjango-network
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
+
+networks:
+  geodjango-network:
+    driver: bridge

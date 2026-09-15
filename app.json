@@ -1,0 +1,9 @@
+{
+  "name": "slepklt",
+  "description": "Lietuvos civilinės saugos priedangų žemėlapis",
+  "scripts": {
+    "dokku": {
+      "predeploy": "python manage.py migrate --noinput"
+    }
+  }
+}
