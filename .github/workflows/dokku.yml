@@ -1,0 +1,45 @@
+# Ops channel to the Dokku server. Manual trigger only.
+# Secrets: DOKKU_HOST (server IP), DOKKU_ROOT_PASSWORD.
+name: dokku
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        type: choice
+        options: [deploy, status, run]
+        default: deploy
+      app:
+        type: string
+        default: slepklt
+      ref:
+        type: string
+        description: git ref to deploy
+        default: main
+      command:
+        type: string
+        description: shell command (action=run only)
+        default: ""
+jobs:
+  dokku:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - run: sudo apt-get install -y -qq sshpass >/dev/null
+      - name: ${{ inputs.action }} ${{ inputs.app }}
+        env:
+          SSHPASS: ${{ secrets.DOKKU_ROOT_PASSWORD }}
+          HOST: ${{ secrets.DOKKU_HOST }}
+          APP: ${{ inputs.app }}
+          REF: ${{ inputs.ref }}
+          CMD: ${{ inputs.command }}
+          REPO: https://github.com/${{ github.repository }}.git
+        run: |
+          r() { sshpass -e ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ConnectTimeout=20 root@"$HOST" "$@"; }
+          case "${{ inputs.action }}" in
+            status)
+              r "set -x; dokku ps:report $APP; dokku config:show $APP | sed -E 's/=.*/=…/'; dokku domains:report $APP; dokku letsencrypt:list; dokku plugin:list | grep -iE 'postgres|letsencrypt'; crontab -l -u dokku 2>/dev/null | grep -i letsencrypt || echo 'NO letsencrypt cron'" ;;
+            deploy)
+              r "dokku git:sync --build $APP $REPO $REF" ;;
+            run)
+              r "$CMD" ;;
+          esac
