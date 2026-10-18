@@ -17,7 +17,7 @@ class Command(BaseCommand):
         
         try:
             self.stdout.write("Fetching data from API...")
-            response = requests.get(url)
+            response = requests.get(url, timeout=(10, 120))
             response.raise_for_status()
             data = response.json()
             

@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.db.models import Sum
+from django.db.utils import DatabaseError
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.views.decorators.cache import cache_page
@@ -7,46 +7,33 @@ from django.conf import settings
 import json
 import requests
 from .models import Shelter
+from .bootstrap import ensure_data
 
 def map_view(request):
     try:
-        # Check if database table exists, create it if not
-        from django.db import connection
-        cursor = connection.cursor()
-        
+        # Empty or missing table: start the import in the background and
+        # render immediately. Never run the import inside the request.
+        ensure_data()
+
         try:
-            # Try to count shelters
-            count = Shelter.objects.count()
-            if count == 0:
-                # Table exists but is empty, populate it
-                from django.core.management import call_command
-                call_command('setup_and_import')
-        except Exception:
-            # Table doesn't exist, create and populate it
-            from django.core.management import call_command
-            call_command('setup_and_import')
-        
-        # Get all shelters with valid coordinates
-        shelters = Shelter.objects.filter(is_valid_coordinates=True)
-        
+            # Get all shelters with valid coordinates
+            shelters = list(Shelter.objects.filter(is_valid_coordinates=True))
+            # Get unique municipalities (only from valid shelters)
+            municipalities = list(Shelter.objects
+                                  .filter(is_valid_coordinates=True)
+                                  .values_list('municipality', flat=True)
+                                  .distinct()
+                                  .exclude(municipality__isnull=True)
+                                  .exclude(municipality='')
+                                  .order_by('municipality'))
+        except DatabaseError:
+            # Table not migrated yet - the bootstrap thread is creating it
+            shelters, municipalities = [], []
+
         # Calculate totals from all shelters
-        total_shelters = shelters.count()
-        total_capacity = shelters.aggregate(
-            total=Sum('capacity', default=0)
-        )['total'] or 0
-        
-        # Get unique municipalities (safely handle empty database, only from valid shelters)
-        try:
-            municipalities = (Shelter.objects
-                            .filter(is_valid_coordinates=True)
-                            .values_list('municipality', flat=True)
-                            .distinct()
-                            .exclude(municipality__isnull=True)
-                            .exclude(municipality='')
-                            .order_by('municipality'))
-        except Exception:
-            municipalities = []
-        
+        total_shelters = len(shelters)
+        total_capacity = sum((s.capacity or 0) for s in shelters)
+
         # Create GeoJSON manually
         features = []
         for shelter in shelters:
@@ -90,27 +77,25 @@ def map_view(request):
 
 def shelter_data(request):
     try:
-        # Ensure database is populated
-        try:
-            count = Shelter.objects.count()
-            if count == 0:
-                from django.core.management import call_command
-                call_command('setup_and_import')
-        except Exception:
-            from django.core.management import call_command
-            call_command('setup_and_import')
-        
+        # Empty or missing table: import in the background, respond now
+        ensure_data()
+
         municipality = request.GET.get('municipality', '')
 
         # Filter shelters if municipality is specified, only show valid coordinates
         queryset = Shelter.objects.filter(is_valid_coordinates=True)
         if municipality:
             queryset = queryset.filter(municipality=municipality)
-        
-        
+
+        try:
+            rows = list(queryset)
+        except DatabaseError:
+            # Table not migrated yet - the bootstrap thread is creating it
+            rows = []
+
         # Create GeoJSON manually for filtered data
         features = []
-        for shelter in queryset:
+        for shelter in rows:
             # Skip shelters without coordinates
             if shelter.latitude is None or shelter.longitude is None:
                 continue
@@ -138,8 +123,8 @@ def shelter_data(request):
         
         # Calculate statistics for filtered data
         stats = {
-            'count': queryset.count(),
-            'total_capacity': queryset.aggregate(total=Sum('capacity', default=0))['total'] or 0
+            'count': len(rows),
+            'total_capacity': sum((s.capacity or 0) for s in rows)
         }
         
         response_data = {

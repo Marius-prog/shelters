@@ -56,7 +56,7 @@ This is a GeoDjango application for mapping Lithuanian civil defense shelters:
   - SpatiaLite (SQLite with spatial extensions) via `run_local.py`
   - PostgreSQL/PostGIS via Docker Compose (`docker-compose.yml`)
 - **Auto-detection**: GIS libraries auto-configured for macOS (Homebrew), Windows, and Linux
-- **Database bootstrapping**: Views auto-run `setup_and_import` if database is empty (`views.py:21-25`)
+- **Database bootstrapping**: Views call `shelter.bootstrap.ensure_data()`, which runs migrations + `import_shelters` once per process in a background thread when the table is missing or empty. Requests never block on the import (the old synchronous import exceeded gunicorn's worker timeout and hung the site).
 
 ### Settings Architecture
 - **Main settings**: `geodjango/settings.py` - unified settings for all environments
@@ -69,7 +69,7 @@ This is a GeoDjango application for mapping Lithuanian civil defense shelters:
 - **Import command**: `import_shelters.py` fetches JSON, parses POINT(lat lon) format, creates Shelter objects
 - **Coordinate parsing**: Handles multiple formats (POINT geometry, comma-separated, space-separated)
 - **Dual coordinate storage**: Both `location` PointField (spatial) and separate `latitude`/`longitude` fields
-- **Auto-bootstrapping**: Views (`map_view`, `shelter_data`) automatically run `setup_and_import` if database is empty - ensures zero-config deployment
+- **Auto-bootstrapping**: Views (`map_view`, `shelter_data`) trigger a non-blocking background import (`shelter/bootstrap.py`) if the database is empty - zero-config deployment without request-path imports
 
 ### Frontend Features
 - **Map**: Leaflet.js centered on Lithuania with OpenStreetMap tiles (`static/shelter/js/map.js`)
